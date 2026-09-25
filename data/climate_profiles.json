@@ -1,0 +1,247 @@
+{
+  "Mumbai": {
+    "lat": 19.076,
+    "lon": 72.8777,
+    "elevation": 14,
+    "temperature": 29.0,
+    "humidity": 76
+  },
+  "Pune": {
+    "lat": 18.5204,
+    "lon": 73.8567,
+    "elevation": 560,
+    "temperature": 27.5,
+    "humidity": 61
+  },
+  "Nagpur": {
+    "lat": 21.1458,
+    "lon": 79.0882,
+    "elevation": 310,
+    "temperature": 29.5,
+    "humidity": 52
+  },
+  "Nashik": {
+    "lat": 19.9975,
+    "lon": 73.7898,
+    "elevation": 565,
+    "temperature": 27.0,
+    "humidity": 58
+  },
+  "Thane": {
+    "lat": 19.2183,
+    "lon": 72.9781,
+    "elevation": 7,
+    "temperature": 29.0,
+    "humidity": 75
+  },
+  "Chhatrapati Sambhajinagar": {
+    "lat": 19.8762,
+    "lon": 75.3433,
+    "elevation": 580,
+    "temperature": 28.0,
+    "humidity": 52
+  },
+  "Solapur": {
+    "lat": 17.6599,
+    "lon": 75.9064,
+    "elevation": 458,
+    "temperature": 29.0,
+    "humidity": 48
+  },
+  "Kolhapur": {
+    "lat": 16.705,
+    "lon": 74.2433,
+    "elevation": 545,
+    "temperature": 27.0,
+    "humidity": 66
+  },
+  "Amravati": {
+    "lat": 20.9374,
+    "lon": 77.7796,
+    "elevation": 343,
+    "temperature": 29.0,
+    "humidity": 53
+  },
+  "Nanded": {
+    "lat": 19.1383,
+    "lon": 77.321,
+    "elevation": 362,
+    "temperature": 29.0,
+    "humidity": 50
+  },
+  "Sangli": {
+    "lat": 16.8524,
+    "lon": 74.5815,
+    "elevation": 550,
+    "temperature": 28.0,
+    "humidity": 60
+  },
+  "Jalgaon": {
+    "lat": 21.0077,
+    "lon": 75.5626,
+    "elevation": 209,
+    "temperature": 29.5,
+    "humidity": 48
+  },
+  "Akola": {
+    "lat": 20.7002,
+    "lon": 77.0082,
+    "elevation": 287,
+    "temperature": 29.5,
+    "humidity": 48
+  },
+  "Latur": {
+    "lat": 18.4088,
+    "lon": 76.5604,
+    "elevation": 540,
+    "temperature": 28.0,
+    "humidity": 51
+  },
+  "Dhule": {
+    "lat": 20.9042,
+    "lon": 74.7749,
+    "elevation": 250,
+    "temperature": 29.0,
+    "humidity": 48
+  },
+  "Ahilyanagar": {
+    "lat": 19.0948,
+    "lon": 74.748,
+    "elevation": 650,
+    "temperature": 27.5,
+    "humidity": 55
+  },
+  "Chandrapur": {
+    "lat": 19.9615,
+    "lon": 79.2961,
+    "elevation": 189,
+    "temperature": 30.0,
+    "humidity": 55
+  },
+  "Parbhani": {
+    "lat": 19.2609,
+    "lon": 76.7767,
+    "elevation": 347,
+    "temperature": 29.0,
+    "humidity": 50
+  },
+  "Ichalkaranji": {
+    "lat": 16.6913,
+    "lon": 74.4604,
+    "elevation": 550,
+    "temperature": 27.5,
+    "humidity": 64
+  },
+  "Jalna": {
+    "lat": 19.8347,
+    "lon": 75.8816,
+    "elevation": 502,
+    "temperature": 28.5,
+    "humidity": 50
+  },
+  "Bhiwandi": {
+    "lat": 19.2813,
+    "lon": 73.0483,
+    "elevation": 20,
+    "temperature": 29.0,
+    "humidity": 74
+  },
+  "Panvel": {
+    "lat": 18.9894,
+    "lon": 73.1175,
+    "elevation": 10,
+    "temperature": 29.0,
+    "humidity": 75
+  },
+  "Satara": {
+    "lat": 17.6805,
+    "lon": 74.0183,
+    "elevation": 730,
+    "temperature": 25.5,
+    "humidity": 63
+  },
+  "Beed": {
+    "lat": 18.9891,
+    "lon": 75.7601,
+    "elevation": 500,
+    "temperature": 28.5,
+    "humidity": 50
+  },
+  "Yavatmal": {
+    "lat": 20.3888,
+    "lon": 78.1204,
+    "elevation": 450,
+    "temperature": 28.5,
+    "humidity": 54
+  },
+  "Wardha": {
+    "lat": 20.7453,
+    "lon": 78.6022,
+    "elevation": 293,
+    "temperature": 29.0,
+    "humidity": 52
+  },
+  "Gondia": {
+    "lat": 21.4624,
+    "lon": 80.2209,
+    "elevation": 315,
+    "temperature": 29.0,
+    "humidity": 58
+  },
+  "Buldhana": {
+    "lat": 20.5293,
+    "lon": 76.184,
+    "elevation": 660,
+    "temperature": 27.5,
+    "humidity": 52
+  },
+  "Washim": {
+    "lat": 20.111,
+    "lon": 77.133,
+    "elevation": 545,
+    "temperature": 28.0,
+    "humidity": 51
+  },
+  "Ratnagiri": {
+    "lat": 16.9944,
+    "lon": 73.3007,
+    "elevation": 11,
+    "temperature": 28.5,
+    "humidity": 78
+  },
+  "Alibag": {
+    "lat": 18.6414,
+    "lon": 72.8722,
+    "elevation": 10,
+    "temperature": 29.0,
+    "humidity": 76
+  },
+  "Palghar": {
+    "lat": 19.6967,
+    "lon": 72.7653,
+    "elevation": 15,
+    "temperature": 29.0,
+    "humidity": 74
+  },
+  "Hingoli": {
+    "lat": 19.7178,
+    "lon": 77.1547,
+    "elevation": 450,
+    "temperature": 28.5,
+    "humidity": 52
+  },
+  "Gadchiroli": {
+    "lat": 20.184,
+    "lon": 80.003,
+    "elevation": 217,
+    "temperature": 29.5,
+    "humidity": 59
+  },
+  "Dharashiv": {
+    "lat": 18.186,
+    "lon": 76.0419,
+    "elevation": 647,
+    "temperature": 28.0,
+    "humidity": 50
+  }
+}

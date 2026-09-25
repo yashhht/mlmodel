@@ -1,0 +1,204 @@
+import React,{useEffect,useMemo,useRef,useState} from "react";
+import {createRoot} from "react-dom/client";
+import {Activity,AlertTriangle,ArrowLeft,ArrowRight,BrainCircuit,CheckCircle2,ChevronRight,Cloud,CloudRain,Database,Gauge,Leaf,MapPin,Mic,Network,Radio,Search,ShieldAlert,ShieldCheck,Thermometer,Users,Volume2,Wind,X,Plane} from "lucide-react";
+import {ResponsiveContainer,LineChart,Line,XAxis,YAxis,CartesianGrid,Tooltip} from "recharts";
+import "./styles.css";
+
+const WS="ws://localhost:8000/ws";
+const MODES=[["normal","Normal"],["spike","Sensor Spike"],["drift","Sensor Drift"],["stuck","Stuck Sensor"],["dropout","Communication Gap"],["extreme","Weather Event"]];
+
+function App(){
+ const [page,setPage]=useState("home");
+ const [city,setCity]=useState("Pune");
+ const [station,setStation]=useState("AWS_001");
+ const [connected,setConnected]=useState(false);
+ const [mode,setMode]=useState("normal");
+ const [tab,setTab]=useState("overview");
+ const [search,setSearch]=useState("");
+ const [cities,setCities]=useState([]);
+ const [stations,setStations]=useState([]);
+ const [latest,setLatest]=useState({});
+ const [history,setHistory]=useState({});
+ const [events,setEvents]=useState({});
+ const [nearby,setNearby]=useState([]);
+ const [departments,setDepartments]=useState(null);
+ const [voice,setVoice]=useState(false);
+ const ws=useRef(null);
+ const cityStrip=useRef(null);
+ const recognition=useRef(null);
+
+ useEffect(()=>{
+   fetch("http://localhost:8000/api/cities")
+     .then(r=>r.json())
+     .then(x=>setCities(x.cities||[]))
+     .catch(()=>{});
+   fetch("http://localhost:8000/api/stations")
+     .then(r=>r.json())
+     .then(x=>setStations(x.stations||[]))
+     .catch(()=>{});
+ },[]);
+
+ useEffect(()=>{
+   if(page!=="dashboard") return;
+   connect();
+   return()=>ws.current?.close();
+ },[page]);
+
+ function connect(){
+   const s=new WebSocket(WS);
+   ws.current=s;
+   s.onopen=()=>{
+     setConnected(true);
+     s.send(JSON.stringify({type:"set_station",stationId:station}));
+     s.send(JSON.stringify({type:"set_mode",mode:"normal"}));
+   };
+   s.onclose=()=>setConnected(false);
+   s.onerror=()=>setConnected(false);
+   s.onmessage=e=>{
+     const m=JSON.parse(e.data);
+     if(m.type==="connected"){
+       setStations(m.stations||[]);
+       setCities(m.cityCatalog||[]);
+       return;
+     }
+     if(m.type==="mode") setMode(m.mode);
+     if(m.type==="selection"){
+       setStation(m.selectedStation);
+       setMode(m.mode||"normal");
+     }
+     if(m.type!=="decision") return;
+     if(!m.observation){
+       if(m.stationId===station) setLatest(x=>({...x,[station]:m}));
+       return;
+     }
+     const id=m.observation.stationId;
+     setLatest(x=>({...x,[id]:m}));
+     setHistory(x=>({...x,[id]:[...(x[id]||[]),{
+       time:new Date(m.observation.timestamp).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
+       temperature:m.observation.temperature,
+       pressure:m.observation.pressure,
+       humidity:m.observation.humidity
+     }].slice(-40)}));
+     if(id===station){
+       setNearby(m.nearby||[]);
+       setDepartments(m.departments||null);
+       if(["FAULT SUSPECTED","REVIEW REQUIRED","WEATHER EVENT LIKELY","COMMUNICATION GAP"].includes(m.status) || m.observation?.sourceEvent!=="normal" || mode!=="normal"){
+         setEvents(x=>({...x,[id]:[m,...(x[id]||[])].slice(0,20)}));
+       }
+     }
+   };
+ }
+
+ function openCity(nameOrCity){
+   const cityObj=typeof nameOrCity==="string" ? cities.find(c=>c.name===nameOrCity) : nameOrCity;
+   if(!cityObj) return;
+   const id=cityObj.stationId;
+   setCity(cityObj.name);
+   setStation(id);
+   setTab("overview");
+   setPage("dashboard");
+   setLatest({});
+   setHistory({});
+   setEvents({});
+   setNearby([]);
+   setDepartments(null);
+   if(ws.current?.readyState===WebSocket.OPEN){
+     ws.current.send(JSON.stringify({type:"set_station",stationId:id}));
+   }
+ }
+
+ function chooseStation(id){
+   const s=stations.find(x=>x.id===id);
+   if(!s) return;
+   setStation(id);
+   setCity(s.city);
+   setMode("normal");
+   setLatest(x=>({...x,[id]:undefined}));
+   setHistory(x=>({...x,[id]:[]}));
+   setEvents(x=>({...x,[id]:[]}));
+   setNearby([]);
+   setDepartments(null);
+   ws.current?.send(JSON.stringify({type:"set_station",stationId:id}));
+ }
+
+ function chooseMode(v){setMode(v);ws.current?.send(JSON.stringify({type:"set_mode",mode:v}));}
+
+ function startVoice(){
+   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+   if(!SR){alert("Voice search is not supported by this browser. Try Chrome/Edge.");return;}
+   if(voice){recognition.current?.stop();setVoice(false);return;}
+   const r=new SR(); recognition.current=r; r.lang="en-IN"; r.interimResults=false;
+   r.onstart=()=>setVoice(true); r.onend=()=>setVoice(false); r.onerror=()=>setVoice(false);
+   r.onresult=e=>{
+     const text=e.results[0][0].transcript.toLowerCase();
+     const found=cities.find(c=>c.name.toLowerCase().includes(text)||text.includes(c.name.toLowerCase()));
+     if(found){setSearch(found.name);openCity(found)} else setSearch(e.results[0][0].transcript);
+   };
+   r.start();
+ }
+
+ const current=latest[station];
+ const currentHistory=history[station]||[];
+ const currentEvents=events[station]||[];
+ const cityStations=stations.filter(s=>s.city===city);
+ if(page==="home") return <Home search={search} setSearch={setSearch} cities={cities} cityStrip={cityStrip} voice={voice} startVoice={startVoice} openCity={openCity}/>;
+ return <Dashboard city={city} station={station} stationList={cityStations} connected={connected} mode={mode} tab={tab} setTab={setTab} current={current} history={currentHistory} nearby={nearby} departments={departments} events={currentEvents} chooseMode={chooseMode} chooseStation={chooseStation} back={()=>setPage("home")}/>;
+}
+
+function Home({search,setSearch,cities,cityStrip,voice,startVoice,openCity}){const filtered=cities.filter(c=>c.name.toLowerCase().includes(search.toLowerCase()));function scroll(n){cityStrip.current?.scrollBy({left:n,behavior:"smooth"});}return <div className="home"><section className="hero"><div className="hero-nav"><div className="brand"><Cloud size={23}/><b>SKYGUARD AI</b></div><div className="demo-badge"><span/> DEMO LIVE NETWORK</div></div><div className="hero-copy"><small>INTELLIGENT AWS QUALITY CONTROL</small><h1>Real Weather Data.<br/><em>Real Decisions.</em></h1><p>AI-powered monitoring for a weather-ready India.</p><div className="search"><Search/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search city or station (e.g. Pune, Solapur, Nashik...)"/><button className={voice?"voice active":"voice"} onClick={startVoice} title="Voice search"><Mic/></button></div>{voice&&<div className="listening"><Volume2 size={13}/> Listening… say a Maharashtra city</div>}</div></section><main className="home-main"><section><div className="section-head"><div><h2>Popular Cities</h2><p>Select a city to view live weather, AI analysis and department insights.</p></div><span>{filtered.length} Maharashtra cities · {cities.reduce((a,c)=>a+(c.stationCount||0),0)} AWS nodes</span></div><div className="carousel-wrap"><button className="scroll-btn" onClick={()=>scroll(-420)}><ArrowLeft/></button><div className="city-strip" ref={cityStrip}>{filtered.map((c,i)=><button className="city-card" key={c.name} onClick={()=>openCity(c)}><div className="city-art"><CityIcon i={i}/></div><b>{c.name}</b><small>{c.stationCount} AWS stations{c.prototypeStations?` · ${c.prototypeStations} prototype`:""}</small></button>)}</div><button className="scroll-btn" onClick={()=>scroll(420)}><ArrowRight/></button></div></section><section><div className="section-head"><div><h2>How It Works</h2><p>From AWS observation to an explainable operator decision.</p></div></div><div className="workflow"><Step n="1" icon={<Radio/>} title="Collect" text="AWS sends T / P / RH observations continuously."/><i><ArrowRight/></i><Step n="2" icon={<BrainCircuit/>} title="Analyze" text="Temporal ML, physics context and spatial evidence are checked."/><i><ArrowRight/></i><Step n="3" icon={<Database/>} title="Inform" text="SkyGuard explains weather evidence versus sensor fault."/><i><ArrowRight/></i><Step n="4" icon={<Users/>} title="Act" text="Operators retain control and departments receive context."/></div></section><section className="impact"><div><small>WEATHER INTELLIGENCE</small><h2>Accurate insights.<br/>Stronger communities.</h2></div><CloudRain size={75}/></section><section className="departments"><Dept icon={<Leaf/>} title="Agriculture" text="Crop advisory & weather support"/><Dept icon={<AlertTriangle/>} title="Disaster Management" text="Early warning & risk reduction"/><Dept icon={<Plane/>} title="Aviation" text="Weather observation support"/></section><footer><span>SkyGuard AI · SIH prototype</span><b>DEMO / SIMULATED DATA</b></footer></main></div>}
+
+function Dashboard({city,station,stationList,connected,mode,tab,setTab,current,history,nearby,departments,events,chooseMode,chooseStation,back}){const o=current?.observation;const fault=current?.fault_probability||0;const weather=current?.weather_probability||0;const confidence=current?.confidence||0;const weatherWins=weather>=fault;return <div className="dash"><header className="dash-head"><button onClick={back}><ArrowLeft/></button><div><b>{city}</b><span>{station}</span></div><div className="grow"/><div className={connected?"live on":"live"}><span/> {connected?"Live Data":"Connecting"}</div><div className="clock">{new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}<small>{new Date().toLocaleTimeString()} IST</small></div></header><nav className="tabs"><button className={tab==="overview"?"active":""} onClick={()=>setTab("overview")}>Overview</button><button className={tab==="fault"?"active fault":""} onClick={()=>setTab("fault")}>Sensor Fault</button><button className={tab==="weather"?"active weather":""} onClick={()=>setTab("weather")}>Weather Event</button><button className={tab==="nearby"?"active":""} onClick={()=>setTab("nearby")}>Nearby Stations</button><button className={tab==="departments"?"active":""} onClick={()=>setTab("departments")}>Department Insights</button><button className={tab==="events"?"active":""} onClick={()=>setTab("events")}>Event Log {events.length>0&&<sup>{events.length}</sup>}</button></nav><main className="dash-main"><div className="toolbar"><div><small>LIVE AWS STREAM · DEMO / SIMULATED DATA</small><b>{city} · {station} · Scenario: {mode}</b></div><div className="toolbar-actions"><label className="station-select">Station <select value={station} onChange={e=>chooseStation(e.target.value)}>{stationList.map(s=><option key={s.id} value={s.id}>{s.id} — {s.name}</option>)}</select></label>{MODES.map(([v,l])=><button className={mode===v?"sel":""} key={v} onClick={()=>chooseMode(v)}>{l}</button>)}</div></div>{tab==="overview"&&<Overview city={city} station={station} o={o} fault={fault} weather={weather} confidence={confidence} current={current} history={history} nearby={nearby} events={events} departments={departments}/>} {tab==="fault"&&<AnalysisTab type="fault" o={o} current={current} history={history} nearby={nearby}/>} {tab==="weather"&&<AnalysisTab type="weather" o={o} current={current} history={history} nearby={nearby}/>} {tab==="nearby"&&<Nearby nearby={nearby} station={station}/>} {tab==="departments"&&<DepartmentPage departments={departments}/>} {tab==="events"&&<EventPage events={events}/>}</main></div>}
+
+function Overview({city,station,o,fault,weather,confidence,current,history,nearby,events,departments}){return <><section className={weather>=fault?"decision weather":"decision fault"}><div className="decision-icon">{weather>=fault?<Cloud/>:<ShieldAlert/>}</div><div className="decision-text"><small>SKYGUARD AI DECISION</small><h2>{weather>=fault?"Weather Event Assessment":"Sensor Fault Assessment"}</h2><p>{current?.explanation?.[0]||"Waiting for enough observations from the live stream."}</p></div><div className="prob"><div><span>Weather</span><b>{Math.round(weather*100)}%</b></div><div><span>Sensor Fault</span><b>{Math.round(fault*100)}%</b></div><div><span>Confidence</span><b>{Math.round(confidence*100)}%</b></div></div><div className="action"><strong>{weather>=fault?"Monitor weather evidence":"Flag for review"}</strong><span>{current?.recommendation||"Continue monitoring."}</span></div></section><Readings o={o}/><div className="grid2"><Comparison nearby={nearby} station={station} o={o}/><Evidence current={current}/></div><Trend history={history}/><Timeline events={events}/><DepartmentMini departments={departments}/></>}
+function Readings({o}){return <section className="readings"><Metric icon={<Thermometer/>} label="Temperature" value={o?o.temperature.toFixed(1):"—"} unit="°C"/><Metric icon={<CloudRain/>} label="Relative Humidity" value={o?o.humidity.toFixed(1):"—"} unit="%"/><Metric icon={<Gauge/>} label="Pressure" value={o?o.pressure.toFixed(1):"—"} unit="hPa"/><Metric icon={<Activity/>} label="Stream" value={o?"LIVE":"WAIT"} unit=""/></section>}
+function Metric({icon,label,value,unit}){return <div className="metric"><div>{icon}</div><span>{label}</span><b>{value}<small>{unit}</small></b></div>}
+function Comparison({nearby,station,o}){const rows=[{stationId:station,stationName:"This station",temperature:o?.temperature??0,distanceKm:0},...nearby];return <section className="panel"><PanelTitle title="Nearby Stations Comparison" sub="Original prototype network / nearest available observations"/><div className="compare">{rows.slice(0,6).map((r,i)=><div className={i===0?"compare-row primary":"compare-row"} key={r.stationId}><span>{r.stationId}<small>{r.stationName||"Reference AWS"}{r.distanceKm?` · ${r.distanceKm} km`:""}</small></span><div><i style={{width:`${Math.min(100,Math.max(8,(r.temperature+5)*1.4))}%`}}/></div><b>{Number(r.temperature).toFixed(1)}°C</b></div>)}</div><div className="check"><CheckCircle2/><div><b>Spatial check</b><span>{nearby.length?"Nearby observations are being compared continuously.":"No reference observation available yet."}</span></div></div></section>}
+function Evidence({current}){const e=current?.evidence||{};return <section className="panel"><PanelTitle title="AI Evidence" sub="Evidence is fused before the decision"/><Bar label="Temporal ML" value={e.temporal||0}/><Bar label="Physics context" value={e.physics||0}/><Bar label="Spatial evidence" value={e.spatial||0}/><Bar label="Validation" value={e.validation||0}/><div className="explain"><ShieldCheck/><span>{current?.explanation?.join(" · ")||"Waiting for evidence."}</span></div></section>}
+function Bar({label,value}){return <div className="bar"><div><span>{label}</span><b>{Math.round(value*100)}%</b></div><i><em style={{width:`${Math.min(100,value*100)}%`}}/></i></div>}
+function Trend({history}){return <section className="panel"><PanelTitle title="Live Sensor Trend" sub="Readable trend view for T / P / RH"/><div className="charts"><Chart data={history} keyName="temperature" title="Temperature" unit="°C"/><Chart data={history} keyName="pressure" title="Pressure" unit="hPa"/><Chart data={history} keyName="humidity" title="Relative Humidity" unit="%"/></div></section>}
+function Chart({data,keyName,title,unit}){return <div className="chart"><div><b>{title}</b><span>{data.length} samples</span></div><div className="chartbox"><ResponsiveContainer width="100%" height="100%"><LineChart data={data}><CartesianGrid stroke="#e6edf4" vertical={false}/><XAxis dataKey="time" hide/><YAxis width={35} tick={{fontSize:8,fill:"#8090a1"}} axisLine={false} tickLine={false}/><Tooltip/><Line dataKey={keyName} stroke={keyName==="temperature"?"#2675db":keyName==="pressure"?"#7456d5":"#29a46a"} strokeWidth={2.5} dot={false} isAnimationActive={false}/></LineChart></ResponsiveContainer></div><small>{unit}</small></div>}
+function Timeline({events}){return <section className="panel"><PanelTitle title="Event Timeline" sub="Recent quality-control decisions"/>{events.length?<div className="timeline">{events.slice(0,6).map((e,i)=><div key={i}><i/><span>{new Date(e.observation.timestamp).toLocaleTimeString()}</span><b>{e.status}</b><p>{e.explanation?.[0]}</p></div>)}</div>:<Empty text="No review event has been recorded for this station."/>}</section>}
+function DepartmentMini({departments}){return <section className="panel"><PanelTitle title="Department Insights" sub="Instructions are generated from the current QC state"/><div className="dept-mini">{departments&&Object.entries(departments).map(([k,v])=><div key={k}><b>{k[0].toUpperCase()+k.slice(1)}</b><strong>{v.title}</strong><span>{v.instruction}</span><button>View</button></div>)}</div></section>}
+function AnalysisTab({type,o,current,history,nearby}){const fault=current?.fault_probability||0,weather=current?.weather_probability||0;const score=type==="fault"?fault:weather;return <><section className={type==="fault"?"special fault":"special weather"}><div>{type==="fault"?<ShieldAlert/>:<CloudRain/>}</div><article><small>{type==="fault"?"SENSOR QUALITY MODE":"METEOROLOGICAL EVENT MODE"}</small><h2>{type==="fault"?"Sensor Fault Assessment":"Weather Event Assessment"}</h2><p>{current?.recommendation||"Waiting for live evidence."}</p></article><strong>{Math.round(score*100)}%<small>{type==="fault"?"fault likelihood":"weather likelihood"}</small></strong></section><Readings o={o}/><div className="grid2"><Evidence current={current}/><Comparison nearby={nearby} station={o?.stationId||"Selected"} o={o}/></div><Trend history={history}/></>}
+function Nearby({nearby,station}){return <section className="panel large"><PanelTitle title="Nearby Stations" sub="Live spatial comparison from the station network"/>{nearby.length?<div className="near-list">{nearby.map((r,i)=><div key={r.stationId}><div className="station-dot"><Radio/></div><div><b>{r.stationId}</b><span>{r.stationName||"Reference AWS"}</span></div><strong>{r.temperature.toFixed(1)}°C</strong><small>{r.distanceKm?`${r.distanceKm} km`:"Reference"}</small></div>)}</div>:<Empty text="Waiting for nearby station observations."/>}</section>}
+function DepartmentPage({departments}){return <section className="panel large"><PanelTitle title="Department Insights" sub="Human-readable operational guidance — not an automatic advisory"/><div className="dept-page">{departments&&Object.entries(departments).map(([k,v])=><div key={k}><div className={`dept-icon ${k}`}><DeptIcon k={k}/></div><article><small>{k.toUpperCase()}</small><h3>{v.title}</h3><p>{v.instruction}</p></article><button>Instruction <ChevronRight/></button></div>)} </div></section>}
+function EventPage({events}){return <section className="panel large"><PanelTitle title="Event Log" sub="Audit trail for observations requiring operator review"/>{events.length?<div className="event-list">{events.map((e,i)=><div key={i}><span className={e.status==="FAULT SUSPECTED"?"danger":"warn"}>{e.status}</span><article><b>{new Date(e.observation.timestamp).toLocaleString()}</b><p>{e.explanation?.join(" · ")}</p></article><strong>{Math.round((e.confidence||0)*100)}%</strong></div>)}</div>:<Empty text="No quality-control events for this station yet. Toggle Sensor Spike, Drift, Stuck Sensor or Weather Event to generate a real demo event."/>}</section>}
+function Empty({text}){return <div className="empty"><CheckCircle2/><span>{text}</span></div>}
+function PanelTitle({title,sub}){return <div className="panel-title"><h2>{title}</h2><p>{sub}</p></div>}
+function CityIcon({i}){const icons=[<MapPin/>,<Cloud/>,<Gauge/>,<Network/>,<Radio/>,<Wind/>];return icons[i%icons.length]}
+function Step({n,icon,title,text}){return <div className="step"><div>{icon}</div><b>{n}. {title}</b><p>{text}</p></div>}
+function Dept({icon,title,text}){return <div className="dept-card"><div>{icon}</div><article><b>{title}</b><span>{text}</span></article></div>}
+function DeptIcon({k}){return k==="agriculture"?<Leaf/>:k==="disaster"?<AlertTriangle/>:<Plane/>}
+
+createRoot(document.getElementById("root")).render(<App/>);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+:root{font-family:Inter,"Segoe UI",Arial,sans-serif;color:#152840;background:#eef3f8;font-synthesis:none;text-rendering:optimizeLegibility}*{box-sizing:border-box}body{margin:0;min-width:320px;background:#eef3f8}button,input{font:inherit}button{cursor:pointer}.home{min-height:100vh}.hero{min-height:350px;color:#fff;background:linear-gradient(135deg,rgba(5,34,64,.95),rgba(24,73,113,.86)),radial-gradient(circle at 80% 0,#83b7dc,#082b4c);border-radius:0 0 28px 28px}.hero-nav{height:70px;max-width:1250px;margin:auto;padding:0 22px;display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:9px;letter-spacing:1px}.demo-badge{display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #4f718f;border-radius:20px;background:#ffffff12;font-size:8px;font-weight:800}.demo-badge span,.live span{width:7px;height:7px;border-radius:50%;background:#54dc97}.hero-copy{max-width:850px;margin:20px auto;text-align:center;padding:0 20px}.hero-copy>small{color:#b8d9f2;font-size:8px;font-weight:800;letter-spacing:2px}.hero h1{font-size:clamp(36px,5vw,57px);line-height:1.04;margin:10px 0 10px;letter-spacing:-1.5px}.hero h1 em{font-style:normal;color:#cbe8ff}.hero p{color:#dcebf6;font-size:15px;margin:0 0 22px}.search{height:58px;max-width:690px;margin:auto;display:flex;align-items:center;gap:12px;padding:0 16px;background:#fff;border-radius:15px;box-shadow:0 14px 30px #00182c40;color:#57708a}.search input{flex:1;border:0;outline:0;color:#162b45;font-size:13px}.search input::placeholder{color:#8999aa}.voice{width:36px;height:36px;border:0;border-radius:9px;background:#edf5ff;color:#2369c9;display:grid;place-items:center}.voice.active{background:#e33440;color:#fff;animation:pulse 1s infinite}@keyframes pulse{50%{box-shadow:0 0 0 7px #e3344022}}.listening{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:9px;color:#cbe8ff;font-size:9px}.home-main{max-width:1250px;margin:auto;padding:28px 22px 50px}.section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px}.section-head h2{margin:0;font-size:19px}.section-head p{margin:4px 0 0;color:#718298;font-size:10px}.section-head>span{color:#5d7690;font-size:9px}.carousel-wrap{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;gap:6px}.city-strip{display:flex;gap:10px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;padding:3px}.city-strip::-webkit-scrollbar{display:none}.city-card{flex:0 0 150px;height:142px;border:1px solid #dde6ef;background:#fff;border-radius:12px;color:#182b44;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 5px 16px #1836530a}.city-card:hover{border-color:#4c91e9;transform:translateY(-2px)}.city-art{height:65px;color:#21476e;display:grid;place-items:center}.city-art svg{width:38px;height:38px}.city-card b{font-size:12px}.city-card small{margin-top:4px;color:#8392a4;font-size:7px}.scroll-btn{width:31px;height:31px;border:1px solid #d8e2ec;border-radius:50%;background:#fff;color:#2a4b70;display:grid;place-items:center}.workflow{display:grid;grid-template-columns:1fr 30px 1fr 30px 1fr 30px 1fr;gap:8px;align-items:center}.step{min-height:175px;padding:18px;text-align:center;background:#fff;border:1px solid #dfe7ef;border-radius:11px}.step>div{width:45px;height:45px;margin:auto auto 10px;display:grid;place-items:center;border-radius:12px;color:#2873d2;background:#edf5ff}.step b{font-size:12px}.step p{font-size:9px;line-height:1.5;color:#708095}.workflow>i{color:#3479d3;display:grid;place-items:center}.impact{margin-top:30px;min-height:135px;border-radius:14px;padding:25px 30px;display:flex;align-items:center;justify-content:space-between;color:#fff;background:linear-gradient(100deg,#082d4d,#16564e)}.impact small{font-size:8px;letter-spacing:1.5px;color:#b9d9dd;font-weight:800}.impact h2{margin:7px 0 0;font-size:25px;line-height:1.08}.impact svg{color:#86ca93}.departments{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:11px}.dept-card{min-height:82px;display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:#fff;border:1px solid #dce5ed}.dept-card>div{width:38px;height:38px;display:grid;place-items:center;border-radius:9px;color:#238b56;background:#e6f7ed}.dept-card:nth-child(2)>div{color:#dc673d;background:#fff0e9}.dept-card:nth-child(3)>div{color:#6848ce;background:#f0ecff}.dept-card b,.dept-card span{display:block}.dept-card b{font-size:11px}.dept-card span{margin-top:4px;color:#718196;font-size:8px}footer{display:flex;justify-content:space-between;padding:20px 2px 0;color:#6f8195;font-size:8px}footer b{color:#bc801a}
+/* dashboard */.dash{min-height:100vh;background:#eef3f8}.dash-head{height:62px;padding:0 22px;display:flex;align-items:center;color:#fff;background:#092442}.dash-head>button{width:31px;height:31px;margin-right:10px;display:grid;place-items:center;border:0;border-radius:7px;color:#fff;background:#ffffff14}.dash-head>button svg{width:17px}.dash-head>div:nth-child(2){display:flex;align-items:center;gap:10px}.dash-head>div:nth-child(2) b{font-size:15px}.dash-head>div:nth-child(2) span{padding-left:10px;border-left:1px solid #47637f;color:#b8c9d9;font-size:9px}.grow{flex:1}.live{display:flex;align-items:center;gap:7px;margin-right:18px;color:#9fb3c8;font-size:9px}.live.on{color:#72dda3}.clock{padding-left:15px;border-left:1px solid #3b5671;font-size:9px}.clock small{display:block;color:#aabed1;font-size:7px;margin-top:2px}.tabs{height:46px;display:flex;overflow-x:auto;padding:0 18px;background:#fff;border-bottom:1px solid #d8e1e9}.tabs button{position:relative;white-space:nowrap;padding:0 17px;border:0;background:transparent;color:#53677f;font-size:9px}.tabs button.active{color:#1e4d98;font-weight:800}.tabs button.active:after{content:"";position:absolute;left:15px;right:15px;bottom:0;height:3px;background:#2b78d8}.tabs button.fault{color:#d33c44}.tabs button.weather{color:#bd7e11}.tabs sup{margin-left:4px;padding:2px 4px;border-radius:8px;background:#e74a51;color:#fff;font-size:6px}.dash-main{max-width:1250px;margin:auto;padding:13px 20px 40px}.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;padding:9px 11px;background:#fff;border:1px solid #dce4ec;border-radius:8px}.toolbar small{display:block;color:#75869a;font-size:6px;font-weight:800;letter-spacing:1px}.toolbar b{display:block;margin-top:3px;font-size:9px}.toolbar>div:last-child{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}.toolbar button{padding:5px 8px;border:1px solid #dbe3eb;border-radius:5px;background:#f7f9fb;color:#65778d;font-size:7px}.toolbar button.sel{background:#2875d5;color:#fff;border-color:#2875d5}.decision{min-height:132px;display:flex;align-items:center;gap:14px;padding:17px;border-radius:10px;border:1px solid}.decision.weather{background:#fff8e9;border-color:#efd59d}.decision.fault{background:#fff0f0;border-color:#edc0c4}.decision-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:50%;flex-shrink:0}.decision.weather .decision-icon{color:#d99317;background:#ffe5ac}.decision.fault .decision-icon{color:#dc3e45;background:#ffd0d2}.decision-text{flex:1}.decision-text small{font-size:7px;font-weight:800;letter-spacing:1px;color:#78899c}.decision-text h2{margin:3px 0;font-size:19px}.decision-text p{margin:0;color:#6b7b8f;font-size:8px}.prob{display:flex;gap:6px}.prob div{min-width:92px;padding:9px;text-align:center;border-radius:7px;background:#ffffffb5;border:1px solid #d9e1e7}.prob span{display:block;color:#7a899a;font-size:6px}.prob b{display:block;margin-top:4px;font-size:17px}.action{width:180px;padding:10px;border-radius:7px;background:#fff}.action strong{display:block;font-size:8px}.action span{display:block;margin-top:3px;color:#738398;font-size:7px;line-height:1.4}.readings{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:10px}.metric{min-height:72px;display:grid;grid-template-columns:36px 1fr;grid-template-rows:auto auto;column-gap:9px;align-items:center;padding:9px;background:#fff;border:1px solid #dce4ec;border-radius:8px}.metric>div{grid-row:1/3;width:36px;height:36px;display:grid;place-items:center;color:#2875d3;background:#eef5ff;border-radius:8px}.metric>span{font-size:7px;color:#708095}.metric>b{font-size:17px}.metric small{margin-left:2px;color:#7b8b9c;font-size:7px}.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:10px;margin-top:10px}.panel{padding:14px;background:#fff;border:1px solid #dce4ec;border-radius:9px}.panel.large{min-height:400px}.panel-title{margin-bottom:11px}.panel-title h2{margin:0;font-size:12px}.panel-title p{margin:3px 0 0;color:#7c8c9e;font-size:7px}.compare-row{display:grid;grid-template-columns:125px 1fr 55px;align-items:center;gap:8px;margin-bottom:8px}.compare-row>span{font-size:8px;color:#53667d}.compare-row small{display:block;margin-top:2px;color:#9aa7b5;font-size:6px}.compare-row>div{height:11px;background:#e8eef4;border-radius:3px;overflow:hidden}.compare-row>div i{display:block;height:100%;background:#66aaf0;border-radius:3px}.compare-row.primary>div i{background:#2e78dc}.compare-row>b{text-align:right;font-size:8px}.check{display:flex;gap:8px;margin-top:12px;padding:10px;border-radius:7px;background:#edf8f2;color:#247b51}.check svg{width:18px}.check b,.check span{display:block}.check b{font-size:8px}.check span{margin-top:2px;color:#6e8094;font-size:7px}.bar{margin-bottom:11px}.bar>div{display:flex;justify-content:space-between;color:#5e7086;font-size:8px}.bar>div b{color:#29415f}.bar>i{display:block;height:7px;margin-top:4px;background:#edf1f5;border-radius:5px;overflow:hidden}.bar em{display:block;height:100%;background:#3b83dc;border-radius:5px}.explain{display:flex;gap:7px;margin-top:12px;padding:9px;background:#f5f8fb;border-radius:7px;color:#2b7a51;font-size:8px}.explain span{color:#687b91;line-height:1.4}.charts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.chart{padding:9px;background:#f8fafc;border:1px solid #e3e9f0;border-radius:7px}.chart>div:first-child{display:flex;justify-content:space-between}.chart>div:first-child b{font-size:9px}.chart>div:first-child span{color:#8290a0;font-size:6px}.chartbox{height:145px;margin-top:3px}.chart>small{color:#77889a;font-size:6px}.timeline>div{position:relative;padding:0 0 11px 17px;border-left:1px solid #d5dfe8}.timeline>div:last-child{border-left:0}.timeline i{position:absolute;left:-4px;top:1px;width:7px;height:7px;border-radius:50%;background:#e54a53;border:2px solid #fff;box-sizing:content-box}.timeline span{font-size:7px;color:#7b8c9e}.timeline b{display:block;margin-top:2px;font-size:8px}.timeline p{margin:3px 0 0;color:#6e8094;font-size:7px}.dept-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.dept-mini>div{padding:10px;border-radius:7px;background:#f8fafc;border:1px solid #e4e9ef}.dept-mini b{display:block;color:#52667e;font-size:8px}.dept-mini strong{display:block;margin-top:5px;font-size:9px}.dept-mini span{display:block;margin-top:4px;color:#738398;font-size:7px;line-height:1.4}.dept-mini button{margin-top:7px;padding:4px 7px;border:1px solid #ccd7e2;border-radius:5px;background:#fff;color:#3567a2;font-size:7px}.special{min-height:140px;display:flex;align-items:center;gap:15px;padding:19px;border-radius:10px;border:1px solid}.special.fault{background:#fff0f0;border-color:#ecc4c7}.special.weather{background:#fff8e9;border-color:#efd6a1}.special>div{width:57px;height:57px;display:grid;place-items:center;border-radius:50%}.special.fault>div{background:#ffd5d7;color:#d83d44}.special.weather>div{background:#ffe5ab;color:#d99517}.special article{flex:1}.special article small{font-size:7px;font-weight:800;color:#7d8996;letter-spacing:1px}.special article h2{margin:4px 0;font-size:20px}.special article p{margin:0;color:#6e7f92;font-size:8px}.special>strong{font-size:29px;text-align:center}.special>strong small{display:block;color:#718195;font-size:7px}.near-list>div{display:grid;grid-template-columns:35px 1fr 70px 55px;align-items:center;gap:9px;padding:11px 0;border-top:1px solid #e6ebf0}.station-dot{width:31px;height:31px;display:grid;place-items:center;border-radius:8px;color:#2875d3;background:#edf5ff}.near-list b,.near-list span{display:block}.near-list b{font-size:8px}.near-list span{margin-top:2px;color:#77889b;font-size:7px}.near-list>div>strong{text-align:right;font-size:10px}.near-list>div>small{text-align:right;color:#8492a2;font-size:7px}.dept-page{display:grid;grid-template-columns:1fr;gap:9px}.dept-page>div{display:flex;align-items:center;gap:11px;padding:13px;border:1px solid #e1e7ee;border-radius:8px}.dept-icon{width:39px;height:39px;display:grid;place-items:center;border-radius:9px}.dept-icon.agriculture{color:#218c55;background:#eaf8f0}.dept-icon.disaster{color:#d8643d;background:#fff0e9}.dept-icon.aviation{color:#6848ce;background:#f2eeff}.dept-page article{flex:1}.dept-page article small{font-size:6px;color:#8190a0;font-weight:800;letter-spacing:1px}.dept-page h3{margin:3px 0;font-size:11px}.dept-page p{margin:0;color:#718196;font-size:8px}.dept-page button{display:flex;align-items:center;gap:3px;padding:6px 9px;border:1px solid #d2dce6;border-radius:5px;background:#fff;color:#32649b;font-size:7px}.dept-page button svg{width:11px}.event-list>div{display:grid;grid-template-columns:135px 1fr 45px;gap:10px;align-items:center;padding:12px 0;border-top:1px solid #e5eaf0}.event-list .danger,.event-list .warn{width:max-content;padding:6px 7px;border-radius:5px;font-size:6px;font-weight:800}.event-list .danger{color:#c83d44;background:#fff0f0}.event-list .warn{color:#b97913;background:#fff7e4}.event-list article b{font-size:8px}.event-list article p{margin:3px 0 0;color:#6f8194;font-size:7px}.event-list>div>strong{text-align:right;font-size:9px}.empty{display:flex;align-items:center;gap:7px;padding:30px 5px;color:#708196;font-size:8px}.empty svg{color:#36a76d;width:18px}
+@media(max-width:1050px){.workflow{grid-template-columns:1fr 1fr}.workflow>i{display:none}.decision{flex-wrap:wrap}.action{width:100%}.prob{width:100%}.grid2{grid-template-columns:1fr}.charts{grid-template-columns:1fr}.readings{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.hero-nav{padding:0 15px}.hero-copy{margin-top:35px}.city-card{flex-basis:135px}.departments{grid-template-columns:1fr}.workflow{grid-template-columns:1fr}.dash-head{padding:0 10px}.clock{display:none}.tabs button{padding:0 11px}.dash-main{padding:10px}.decision-icon{width:44px;height:44px}.prob{display:grid;grid-template-columns:1fr 1fr}.readings{grid-template-columns:1fr}.dept-mini{grid-template-columns:1fr}.near-list>div{grid-template-columns:35px 1fr 60px}.near-list>div>small{display:none}}@media(max-width:480px){.hero h1{font-size:35px}.search{height:52px}.section-head p{max-width:250px}.toolbar{align-items:flex-start;flex-direction:column;gap:8px}.toolbar>div:last-child{justify-content:flex-start}.decision-text h2{font-size:17px}.prob div{min-width:0}.special{flex-wrap:wrap}.special>strong{width:100%;text-align:left}.event-list>div{grid-template-columns:1fr}.event-list>div>strong{text-align:left}}
+.toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.station-select{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#5d6c7d}
+.station-select select{border:1px solid #d7e0ea;background:#fff;border-radius:10px;padding:9px 30px 9px 10px;color:#18283a;font-weight:700;max-width:260px;outline:none}
+@media(max-width:900px){.toolbar-actions{justify-content:flex-start}.station-select{width:100%}.station-select select{flex:1;max-width:none}}
