@@ -1,0 +1,270 @@
+{
+  "Rule-based QC (range+step+persistence)": {
+    "precision": 0.857,
+    "recall": 0.211,
+    "f1": 0.338,
+    "false_alarms_per_station_day": 0.12,
+    "weather_event_false_alarm_rate": 0.01,
+    "recall_by_type": {
+      "sensor_spike": 0.237,
+      "sensor_drift": 0.0,
+      "sensor_stuck": 0.714,
+      "humidity_offset": 0.0
+    },
+    "episodes": {
+      "total": 101,
+      "detected_pct": 56.4,
+      "median_latency_readings": 5.0,
+      "detected_pct_by_type": {
+        "sensor_spike": 93.1,
+        "sensor_drift": 0.0,
+        "sensor_stuck": 100.0,
+        "humidity_offset": 0.0
+      },
+      "median_latency_by_type": {
+        "sensor_spike": 0.0,
+        "sensor_drift": null,
+        "sensor_stuck": 5.0,
+        "humidity_offset": null
+      }
+    }
+  },
+  "Rolling z-score rule (>3.5 sigma)": {
+    "precision": 0.207,
+    "recall": 0.037,
+    "f1": 0.063,
+    "false_alarms_per_station_day": 0.5,
+    "weather_event_false_alarm_rate": 0.087,
+    "recall_by_type": {
+      "sensor_spike": 0.39,
+      "sensor_drift": 0.006,
+      "sensor_stuck": 0.0,
+      "humidity_offset": 0.055
+    },
+    "episodes": {
+      "total": 101,
+      "detected_pct": 44.6,
+      "median_latency_readings": 0.0,
+      "detected_pct_by_type": {
+        "sensor_spike": 89.7,
+        "sensor_drift": 19.0,
+        "sensor_stuck": 0.0,
+        "humidity_offset": 71.4
+      },
+      "median_latency_by_type": {
+        "sensor_spike": 0.0,
+        "sensor_drift": 26.0,
+        "sensor_stuck": null,
+        "humidity_offset": 0.0
+      }
+    }
+  },
+  "Isolation Forest only (tested, not used)": {
+    "precision": 0.332,
+    "recall": 0.039,
+    "f1": 0.069,
+    "false_alarms_per_station_day": 0.27,
+    "weather_event_false_alarm_rate": 0.042,
+    "recall_by_type": {
+      "sensor_spike": 0.305,
+      "sensor_drift": 0.016,
+      "sensor_stuck": 0.0,
+      "humidity_offset": 0.066
+    },
+    "episodes": {
+      "total": 101,
+      "detected_pct": 50.5,
+      "median_latency_readings": 0.0,
+      "detected_pct_by_type": {
+        "sensor_spike": 93.1,
+        "sensor_drift": 14.3,
+        "sensor_stuck": 0.0,
+        "humidity_offset": 100.0
+      },
+      "median_latency_by_type": {
+        "sensor_spike": 0.0,
+        "sensor_drift": 37.0,
+        "sensor_stuck": null,
+        "humidity_offset": 0.0
+      }
+    },
+    "average_precision": 0.331
+  },
+  "Autoencoder only": {
+    "precision": 0.846,
+    "recall": 0.398,
+    "f1": 0.541,
+    "false_alarms_per_station_day": 0.25,
+    "weather_event_false_alarm_rate": 0.029,
+    "recall_by_type": {
+      "sensor_spike": 0.941,
+      "sensor_drift": 0.13,
+      "sensor_stuck": 0.823,
+      "humidity_offset": 0.275
+    },
+    "episodes": {
+      "total": 101,
+      "detected_pct": 95.0,
+      "median_latency_readings": 0.0,
+      "detected_pct_by_type": {
+        "sensor_spike": 100.0,
+        "sensor_drift": 76.2,
+        "sensor_stuck": 100.0,
+        "humidity_offset": 100.0
+      },
+      "median_latency_by_type": {
+        "sensor_spike": 0.0,
+        "sensor_drift": 32.0,
+        "sensor_stuck": 3.0,
+        "humidity_offset": 0.0
+      }
+    },
+    "average_precision": 0.719
+  },
+  "Random Forest, NO spatial features": {
+    "precision": 0.867,
+    "recall": 0.401,
+    "f1": 0.549,
+    "false_alarms_per_station_day": 0.22,
+    "weather_event_false_alarm_rate": 0.001,
+    "recall_by_type": {
+      "sensor_spike": 0.508,
+      "sensor_drift": 0.099,
+      "sensor_stuck": 1.0,
+      "humidity_offset": 0.253
+    },
+    "episodes": {
+      "total": 101,
+      "detected_pct": 92.1,
+      "median_latency_readings": 0.0,
+      "detected_pct_by_type": {
+        "sensor_spike": 93.1,
+        "sensor_drift": 76.2,
+        "sensor_stuck": 100.0,
+        "humidity_offset": 95.2
+      },
+      "median_latency_by_type": {
+        "sensor_spike": 0.0,
+        "sensor_drift": 14.0,
+        "sensor_stuck": 0.0,
+        "humidity_offset": 0.0
+      }
+    },
+    "average_precision": 0.638
+  },
+  "Random Forest only (known faults)": {
+    "precision": 0.917,
+    "recall": 0.853,
+    "f1": 0.883,
+    "false_alarms_per_station_day": 0.27,
+    "weather_event_false_alarm_rate": 0.004,
+    "recall_by_type": {
+      "sensor_spike": 0.932,
+      "sensor_drift": 0.716,
+      "sensor_stuck": 1.0,
+      "humidity_offset": 0.953
+    },
+    "episodes": {
+      "total": 101,
+      "detected_pct": 97.0,
+      "median_latency_readings": 0.0,
+      "detected_pct_by_type": {
+        "sensor_spike": 93.1,
+        "sensor_drift": 95.2,
+        "sensor_stuck": 100.0,
+        "humidity_offset": 100.0
+      },
+      "median_latency_by_type": {
+        "sensor_spike": 0.0,
+        "sensor_drift": 6.0,
+        "sensor_stuck": 0.0,
+        "humidity_offset": 0.0
+      }
+    },
+    "average_precision": 0.926
+  },
+  "SkyGuard = RF + novelty autoencoder": {
+    "precision": 0.919,
+    "recall": 0.844,
+    "f1": 0.88,
+    "false_alarms_per_station_day": 0.26,
+    "weather_event_false_alarm_rate": 0.006,
+    "recall_by_type": {
+      "sensor_spike": 0.992,
+      "sensor_drift": 0.69,
+      "sensor_stuck": 1.0,
+      "humidity_offset": 0.951
+    },
+    "episodes": {
+      "total": 101,
+      "detected_pct": 99.0,
+      "median_latency_readings": 0.0,
+      "detected_pct_by_type": {
+        "sensor_spike": 100.0,
+        "sensor_drift": 95.2,
+        "sensor_stuck": 100.0,
+        "humidity_offset": 100.0
+      },
+      "median_latency_by_type": {
+        "sensor_spike": 0.0,
+        "sensor_drift": 7.0,
+        "sensor_stuck": 0.0,
+        "humidity_offset": 0.0
+      }
+    }
+  },
+  "_operating_curve": {
+    "0.33": {
+      "recall": 0.798,
+      "precision": 0.968,
+      "episodes_detected_pct": 99.0,
+      "false_alarms_per_station_day": 0.09
+    },
+    "0.5": {
+      "recall": 0.821,
+      "precision": 0.951,
+      "episodes_detected_pct": 99.0,
+      "false_alarms_per_station_day": 0.15
+    },
+    "1": {
+      "recall": 0.844,
+      "precision": 0.919,
+      "episodes_detected_pct": 99.0,
+      "false_alarms_per_station_day": 0.26
+    },
+    "2": {
+      "recall": 0.862,
+      "precision": 0.858,
+      "episodes_detected_pct": 99.0,
+      "false_alarms_per_station_day": 0.5
+    },
+    "5": {
+      "recall": 0.887,
+      "precision": 0.724,
+      "episodes_detected_pct": 100.0,
+      "false_alarms_per_station_day": 1.18
+    }
+  },
+  "_novel_fault_recall": {
+    "sensor_spike": {
+      "RF alone": 0.432,
+      "Autoencoder alone": 0.839,
+      "RF + novelty AE": 0.966
+    },
+    "sensor_drift": {
+      "RF alone": 0.131,
+      "Autoencoder alone": 0.018,
+      "RF + novelty AE": 0.137
+    },
+    "sensor_stuck": {
+      "RF alone": 0.227,
+      "Autoencoder alone": 0.716,
+      "RF + novelty AE": 0.746
+    },
+    "humidity_offset": {
+      "RF alone": 0.0,
+      "Autoencoder alone": 0.036,
+      "RF + novelty AE": 0.036
+    }
+  }
+}
