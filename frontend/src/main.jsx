@@ -154,7 +154,7 @@ function App() {
   };
   const current = latest[station];
   const cityStations = stations.filter(s => s.city === city);
-  if (page === "home") return <Home search={search} setSearch={setSearch} cities={cities} cityStrip={cityStrip} voice={voice} startVoice={startVoice} openCity={openCity} networkError={networkError} />;
+  if (page === "home") return <Home search={search} setSearch={setSearch} cities={cities} stations={stations} cityStrip={cityStrip} voice={voice} startVoice={startVoice} openCity={openCity} networkError={networkError} />;
   return <Dashboard city={city} station={station} stationList={cityStations} connection={connection} mode={mode} tab={tab} setTab={setTab} current={current} history={history[station] || []} nearby={nearby} departments={departments} events={events[station] || []} chooseMode={chooseMode} chooseStation={chooseStation} back={() => setPage("home")} reconnect={connect} mobileNav={mobileNav} setMobileNav={setMobileNav} />;
 }
 
@@ -163,532 +163,129 @@ function Home({
   search,
   setSearch,
   cities,
+  stations,
   cityStrip,
   voice,
   startVoice,
   openCity,
   networkError,
 }) {
-  const filteredCities = cities.filter((city) =>
-    city.name.toLowerCase().includes(search.toLowerCase())
+  const filteredCities = cities.filter((item) =>
+    item.name.toLowerCase().includes(search.toLowerCase())
   );
-
   const totalStations = cities.reduce(
-    (total, city) => total + (Number(city.stationCount) || 0),
+    (total, item) => total + (Number(item.stationCount) || 0),
     0
   );
 
   const scrollCities = (direction) => {
-    cityStrip.current?.scrollBy({
-      left: direction * 320,
-      behavior: "smooth",
-    });
+    cityStrip.current?.scrollBy({ left: direction * 320, behavior: "smooth" });
   };
 
   return (
-    <div className="sg-landing" id="top">
-      {/* NAVIGATION */}
-      <header className="sg-nav">
-        <a href="#top" className="sg-brand" aria-label="SkyGuard AI home">
-          <span className="sg-brand-icon">
-            <Cloud size={21} />
-          </span>
-
-          <span className="sg-brand-text">
-            <strong>
-              skyguard<span>AI</span>
-            </strong>
+    <main className="sg-city-home">
+      <header className="sg-city-home-header">
+        <a href="#cities" className="sg-city-home-brand" aria-label="SkyGuard AI">
+          <span className="sg-city-home-brand-icon"><Cloud size={21} /></span>
+          <span>
+            <strong>SkyGuard<span>AI</span></strong>
             <small>WEATHER SIGNAL INTELLIGENCE</small>
           </span>
         </a>
-
-        <nav className="sg-nav-links">
-          <a href="#platform">Platform</a>
-          <a href="#workflow">How it works</a>
-          <a href="#applications">Applications</a>
-        </nav>
-
-        <div className="sg-nav-actions">
-          <span className="sg-prototype">
-            <i />
-            PROTOTYPE
-          </span>
-
-          <a href="#explore" className="sg-nav-cta">
-            Explore network
-            <ArrowRight size={15} />
-          </a>
-        </div>
+        <span className="sg-city-home-network">
+          <Radio size={14} /> {totalStations} AWS stations
+        </span>
       </header>
 
-      <main>
-        {/* HERO */}
-        <section className="sg-hero" id="platform">
-          <div className="sg-hero-grid" />
+      <section className="sg-city-home-content" id="cities">
+        <div className="sg-city-home-heading">
+          <span className="sg-section-label">AWS CITY NETWORK</span>
+          <h1>Select a city</h1>
+          <p>Choose a location to open its monitoring dashboard and inspect station readings, anomalies, and evidence.</p>
+        </div>
 
-          <div className="sg-hero-copy">
-            <div className="sg-eyebrow">
-              <span />
-              AWS QUALITY INTELLIGENCE
-              <b>·</b>
-              OPERATOR-FIRST AI
-            </div>
-
-            <h1>
-              When weather
-              <br />
-              changes, know
-              <br />
-              <em>what to trust.</em>
-            </h1>
-
-            <p className="sg-hero-description">
-              SkyGuard AI examines weather-station observations, sensor
-              behavior, and available neighboring-station evidence to help
-              operators understand what deserves a closer look.
-            </p>
-
-            <div className="sg-hero-actions">
-              <a href="#explore" className="sg-button-primary">
-                Explore the network
-                <ArrowRight size={17} />
-              </a>
-
-              <a href="#workflow" className="sg-button-secondary">
-                <span className="sg-play-icon">
-                  <ChevronRight size={15} />
-                </span>
-                See how it works
-              </a>
-            </div>
-
-            <div className="sg-trust-points">
-              <span>
-                <CheckCircle2 size={15} />
-                Explainable evidence
-              </span>
-              <span>
-                <CheckCircle2 size={15} />
-                Human-led review
-              </span>
-              <span>
-                <CheckCircle2 size={15} />
-                Raw readings retained
-              </span>
-            </div>
+        {networkError && (
+          <div className="sg-network-error">
+            <AlertTriangle size={17} />
+            <span>{networkError}</span>
           </div>
+        )}
 
-          {/* CUSTOM NETWORK VISUAL */}
-          <div className="sg-hero-visual">
-            <div className="sg-visual-header">
-              <span>
-                <i />
-                STATION NETWORK
-              </span>
-              <span>DEMO ENVIRONMENT</span>
-            </div>
+        <div className="sg-city-home-search">
+          <Search size={18} />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search cities..."
+            aria-label="Search cities"
+          />
+          <button
+            type="button"
+            onClick={startVoice}
+            className={voice ? "sg-voice-button listening" : "sg-voice-button"}
+            aria-label={voice ? "Stop voice search" : "Start voice search"}
+            title={voice ? "Listening" : "Voice search"}
+          >
+            <Mic size={16} />
+            <span>{voice ? "Listening…" : "Voice"}</span>
+          </button>
+        </div>
 
-            <div className="sg-network-scene">
-              <svg
-                className="sg-network-lines"
-                viewBox="0 0 560 400"
-                role="img"
-                aria-label="Illustration showing weather stations connected in a network"
-              >
-                <defs>
-                  <linearGradient id="sgLine" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#7bc8f5" stopOpacity=".12" />
-                    <stop offset="50%" stopColor="#7bc8f5" stopOpacity=".8" />
-                    <stop offset="100%" stopColor="#7bc8f5" stopOpacity=".15" />
-                  </linearGradient>
-                </defs>
-
-                <path d="M70 280 C150 220 185 120 280 185 S420 280 500 105" />
-                <path d="M70 280 C160 335 210 345 280 185 S420 70 500 105" />
-                <path d="M70 280 L170 85 L280 185 L420 70" />
-                <path d="M170 85 C245 35 345 40 420 70" />
-                <path d="M280 185 L500 105" />
-              </svg>
-
-              <div className="sg-network-orbit sg-orbit-one" />
-              <div className="sg-network-orbit sg-orbit-two" />
-
-              <div className="sg-network-core">
-                <div className="sg-core-icon">
-                  <BrainCircuit size={29} />
-                </div>
-                <strong>SkyGuard AI</strong>
-                <small>Evidence fusion</small>
-              </div>
-
-              <div className="sg-station-node sg-node-pune">
-                <span className="sg-node-dot" />
-                <div>
-                  <strong>Pune</strong>
-                  <small>Station network</small>
-                </div>
-              </div>
-
-              <div className="sg-station-node sg-node-nashik">
-                <span className="sg-node-dot" />
-                <div>
-                  <strong>Nashik</strong>
-                  <small>Observation</small>
-                </div>
-              </div>
-
-              <div className="sg-station-node sg-node-solapur">
-                <span className="sg-node-dot" />
-                <div>
-                  <strong>Solapur</strong>
-                  <small>Observation</small>
-                </div>
-              </div>
-
-              <div className="sg-signal-card">
-                <span className="sg-signal-icon">
-                  <Activity size={17} />
-                </span>
-                <div>
-                  <strong>Evidence analyzed</strong>
-                  <small>Temporal · Spatial · Physics</small>
-                </div>
-                <CheckCircle2 size={17} className="sg-signal-check" />
-              </div>
-
-              <div className="sg-visual-caption">
-                <span className="sg-live-dot" />
-                Illustrative station network
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* TRUST / VALUE STRIP */}
-        <section className="sg-value-strip">
-          <div className="sg-value-intro">
-            <span className="sg-section-label">BUILT FOR CLARITY</span>
-            <strong>From raw readings to useful context.</strong>
-          </div>
-
-          <div className="sg-value-item">
-            <span className="sg-value-icon">
-              <Activity size={18} />
-            </span>
-            <div>
-              <strong>Temporal patterns</strong>
-              <small>Understand changes over time</small>
-            </div>
-          </div>
-
-          <div className="sg-value-item">
-            <span className="sg-value-icon">
-              <Network size={18} />
-            </span>
-            <div>
-              <strong>Spatial evidence</strong>
-              <small>Compare available nearby stations</small>
-            </div>
-          </div>
-
-          <div className="sg-value-item">
-            <span className="sg-value-icon">
-              <ShieldCheck size={18} />
-            </span>
-            <div>
-              <strong>Explainable review</strong>
-              <small>Show evidence and uncertainty</small>
-            </div>
-          </div>
-        </section>
-
-        {/* CITY EXPLORER */}
-        <section className="sg-explore" id="explore">
-          <div className="sg-section-heading">
-            <div>
-              <span className="sg-section-label">EXPLORE THE DEMO</span>
-              <h2>
-                Your station network.
-                <br />
-                <em>One clear view.</em>
-              </h2>
-              <p>
-                Select a city to open its monitoring dashboard and inspect
-                station observations and simulated scenarios.
-              </p>
-            </div>
-
-            <div className="sg-network-count">
-              <strong>{String(totalStations).padStart(2, "0")}</strong>
-              <span>
-                DEMO
-                <br />
-                STATIONS
-              </span>
-            </div>
-          </div>
-
-          {networkError && (
-            <div className="sg-network-error">
-              <AlertTriangle size={17} />
-              <span>{networkError}</span>
-            </div>
-          )}
-
-          <div className="sg-search">
-            <Search size={18} />
-
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search a city or station location..."
-              aria-label="Search cities"
-            />
-
-            <button
-              type="button"
-              onClick={startVoice}
-              className={voice ? "sg-voice-button listening" : "sg-voice-button"}
-              aria-label={voice ? "Stop voice search" : "Start voice search"}
-              title={voice ? "Listening" : "Voice search"}
-            >
-              <Mic size={17} />
-              <span>{voice ? "Listening…" : "Voice"}</span>
+        <div className="sg-city-home-toolbar">
+          <span>{filteredCities.length} cities available</span>
+          <div className="sg-carousel-controls">
+            <button type="button" onClick={() => scrollCities(-1)} aria-label="Scroll cities left">
+              <ArrowLeft size={17} />
+            </button>
+            <button type="button" onClick={() => scrollCities(1)} aria-label="Scroll cities right">
+              <ArrowRight size={17} />
             </button>
           </div>
+        </div>
 
-          <div className="sg-city-toolbar">
-            <span>
-              {filteredCities.length} locations available
-            </span>
-
-            <div className="sg-carousel-controls">
+        {filteredCities.length ? (
+          <div className="sg-city-home-cards" ref={cityStrip}>
+            {filteredCities.map((item, index) => (
               <button
                 type="button"
-                onClick={() => scrollCities(-1)}
-                aria-label="Scroll cities left"
+                className="sg-city-home-card"
+                key={item.name}
+                onClick={() => openCity(item)}
               >
-                <ArrowLeft size={17} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => scrollCities(1)}
-                aria-label="Scroll cities right"
-              >
-                <ArrowRight size={17} />
-              </button>
-            </div>
-          </div>
-
-          {filteredCities.length > 0 ? (
-            <div className="sg-city-grid" ref={cityStrip}>
-              {filteredCities.map((city, index) => (
-                <button
-                  type="button"
-                  className="sg-city-card"
-                  key={city.name}
-                  onClick={() => openCity(city)}
-                >
-                  <div className={`sg-city-art sg-city-art-${index % 4}`}>
-                    <div className="sg-city-art-orbit" />
-                    <div className="sg-city-art-sun" />
-                    <div className="sg-city-art-icon">
-                      <Cloud size={27} />
-                    </div>
-                    <span className="sg-city-index">
-                      {String(index + 1).padStart(2, "0")}
+                <span className={`sg-city-home-card-art sg-city-home-art-${index % 4}`}>
+                  <span className="sg-city-home-card-number">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="sg-city-home-weather"><Cloud size={28} /></span>
+                  <span className="sg-city-home-card-caption">AUTOMATIC WEATHER STATION</span>
+                </span>
+                <span className="sg-city-home-card-body">
+                  <span className="sg-city-home-card-title">
+                    <span>
+                      <strong>{item.name}</strong>
+                      <small>Maharashtra, India</small>
                     </span>
-                  </div>
-
-                  <div className="sg-city-card-body">
-                    <div className="sg-city-title">
-                      <div>
-                        <strong>{city.name}</strong>
-                        <small>Maharashtra, India</small>
-                      </div>
-                      <span className="sg-city-arrow">
-                        <ArrowUpRight size={17} />
-                      </span>
-                    </div>
-
-                    <div className="sg-city-meta">
-                      <span>
-                        <Radio size={13} />
-                        {city.stationCount || 0} stations
-                      </span>
-                      <span className="sg-city-demo">
-                        <i />
-                        Demo network
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="sg-empty-state">
-              <Search size={23} />
-              <strong>No matching locations</strong>
-              <span>Try another city name.</span>
-              <button type="button" onClick={() => setSearch("")}>
-                Clear search
+                    <span className="sg-city-home-card-arrow"><ArrowUpRight size={18} /></span>
+                  </span>
+                  <span className="sg-city-home-card-meta">
+                    <span><Radio size={13} /> {item.stationCount || 0} stations</span>
+                    <span className="sg-city-home-open">Open dashboard <ArrowRight size={13} /></span>
+                  </span>
+                </span>
               </button>
-            </div>
-          )}
-
-          <p className="sg-demo-note">
-            <Info size={14} />
-            Demonstration data and simulated scenarios. Not an official
-            operational weather service.
-          </p>
-        </section>
-
-        {/* WORKFLOW */}
-        <section className="sg-workflow" id="workflow">
-          <div className="sg-workflow-heading">
-            <span className="sg-section-label">HOW IT WORKS</span>
-            <h2>
-              More context.
-              <br />
-              <em>Clearer decisions.</em>
-            </h2>
-            <p>
-              A transparent quality-assessment workflow designed to support
-              operator review.
-            </p>
-          </div>
-
-          <div className="sg-workflow-grid">
-            {[
-              {
-                number: "01",
-                icon: <Database size={21} />,
-                title: "Collect",
-                description:
-                  "Receive temperature, pressure, and relative-humidity observations.",
-              },
-              {
-                number: "02",
-                icon: <Activity size={21} />,
-                title: "Analyze",
-                description:
-                  "Examine temporal behavior and relevant physical relationships.",
-              },
-              {
-                number: "03",
-                icon: <Network size={21} />,
-                title: "Compare",
-                description:
-                  "Use available neighboring-station evidence as supporting context.",
-              },
-              {
-                number: "04",
-                icon: <ShieldCheck size={21} />,
-                title: "Explain",
-                description:
-                  "Present evidence, uncertainty, and a review-oriented assessment.",
-              },
-            ].map((step) => (
-              <article className="sg-workflow-step" key={step.number}>
-                <span className="sg-step-number">{step.number}</span>
-                <div className="sg-step-icon">{step.icon}</div>
-                <h3>{step.title}</h3>
-                <p>{step.description}</p>
-              </article>
             ))}
           </div>
-        </section>
-
-        {/* APPLICATIONS */}
-        <section className="sg-applications" id="applications">
-          <div className="sg-applications-copy">
-            <span className="sg-section-label">DESIGNED FOR REAL WORKFLOWS</span>
-            <h2>
-              One quality layer.
-              <br />
-              <em>Many applications.</em>
-            </h2>
-            <p>
-              Help teams inspect observation reliability and context before
-              using measurements in their established processes.
-            </p>
+        ) : (
+          <div className="sg-empty-state">
+            <Search size={23} />
+            <strong>No matching cities</strong>
+            <span>Try another city name.</span>
+            <button type="button" onClick={() => setSearch("")}>Clear search</button>
           </div>
-
-          <div className="sg-application-list">
-            <article>
-              <span className="sg-application-icon agriculture">
-                <Leaf size={20} />
-              </span>
-              <div>
-                <strong>Agriculture</strong>
-                <p>
-                  Review local observation quality for monitoring and planning.
-                </p>
-              </div>
-              <ChevronRight size={18} />
-            </article>
-
-            <article>
-              <span className="sg-application-icon disaster">
-                <AlertTriangle size={20} />
-              </span>
-              <div>
-                <strong>Disaster management</strong>
-                <p>
-                  Inspect regional consistency as supporting context for
-                  authorized workflows.
-                </p>
-              </div>
-              <ChevronRight size={18} />
-            </article>
-
-            <article>
-              <span className="sg-application-icon aviation">
-                <Plane size={20} />
-              </span>
-              <div>
-                <strong>Aviation</strong>
-                <p>
-                  Identify measurements that may warrant verification before
-                  use.
-                </p>
-              </div>
-              <ChevronRight size={18} />
-            </article>
-          </div>
-        </section>
-      </main>
-
-      {/* FOOTER */}
-      <footer className="sg-footer">
-        <a href="#top" className="sg-brand">
-          <span className="sg-brand-icon">
-            <Cloud size={18} />
-          </span>
-          <span className="sg-brand-text">
-            <strong>
-              skyguard<span>AI</span>
-            </strong>
-            <small>WEATHER SIGNAL INTELLIGENCE</small>
-          </span>
-        </a>
-
-        <span>© SkyGuard AI · SIH prototype</span>
-
-        <span className="sg-footer-disclaimer">
-          <i />
-          Synthetic demonstration network
-        </span>
-      </footer>
-    </div>
+        )}
+      </section>
+    </main>
   );
 }
-
-
-
-
 
 function Dashboard({ city, station, stationList, connection, mode, tab, setTab, current, history, nearby, departments, events, chooseMode, chooseStation, back, reconnect, mobileNav, setMobileNav }) {
   const [now, setNow] = useState(new Date());
