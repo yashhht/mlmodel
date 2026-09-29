@@ -27,8 +27,8 @@ import "./styles.css";
 
 
 
-const API = "http://localhost:8000";
-const WS = "ws://localhost:8000/ws";
+const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const WS = import.meta.env.VITE_WS_URL || "ws://localhost:8000/ws"
 const MODES = [
   ["normal", "Normal stream"], ["spike", "Sensor spike"], ["drift", "Sensor drift"],
   ["stuck", "Stuck sensor"], ["dropout", "Communication gap"], ["extreme", "Regional weather event"]
